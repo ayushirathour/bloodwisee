@@ -47,6 +47,24 @@ const Scan: React.FC = () => {
     }));
   };
 
+  // Enhanced input validation with ranges
+  const validateInputRanges = (values: { hemoglobin: number; mch: number; mchc: number; mcv: number }) => {
+    const validations = [
+      { field: 'hemoglobin', value: values.hemoglobin, min: 0, max: 30, name: 'Hemoglobin' },
+      { field: 'mch', value: values.mch, min: 0, max: 50, name: 'MCH' },
+      { field: 'mchc', value: values.mchc, min: 0, max: 50, name: 'MCHC' },
+      { field: 'mcv', value: values.mcv, min: 0, max: 150, name: 'MCV' }
+    ];
+
+    for (const validation of validations) {
+      if (validation.value < validation.min || validation.value > validation.max) {
+        toast.error(`${validation.name} must be between ${validation.min} and ${validation.max}`);
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -74,11 +92,20 @@ const Scan: React.FC = () => {
         return;
       }
 
-      // API call to Render backend
-      const response = await fetch('https://anemia-web.onrender.com/predict', {
+      // Enhanced input validation
+      if (!validateInputRanges(numericValues)) {
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Enhanced API call with CORS support and environment variable
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://anemia-web.onrender.com';
+      const response = await fetch(`${apiUrl}/predict`, {
         method: 'POST',
+        mode: 'cors', // ✅ Added CORS mode
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json' // ✅ Added Accept header
         },
         body: JSON.stringify({
           Hemoglobin: numericValues.hemoglobin,
@@ -89,13 +116,14 @@ const Scan: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`);
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(`API Error: ${response.status} - ${errorText}`);
       }
 
       const result = await response.json();
       setPrediction(result);
       
-      // Store in Supabase
+      // Store in Supabase with enhanced error handling
       const predictionData: PredictionData = {
         user_id: user.id,
         hemoglobin: numericValues.hemoglobin,
@@ -113,13 +141,25 @@ const Scan: React.FC = () => {
       if (error) {
         console.error('Error saving prediction:', error);
         toast.error('Failed to save prediction to database');
+      } else {
+        toast.success('Analysis completed successfully!');
       }
-
-      toast.success('Analysis completed successfully!');
       
     } catch (error: any) {
       console.error('Prediction error:', error);
-      toast.error('Failed to get prediction. Please try again.');
+      
+      // Enhanced error handling for specific scenarios
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        toast.error('Network error: Unable to connect to analysis server');
+      } else if (error.message.includes('CORS')) {
+        toast.error('Connection blocked. Please try again.');
+      } else if (error.message.includes('API Error: 500')) {
+        toast.error('Server processing error. Please check your input values.');
+      } else if (error.message.includes('API Error: 404')) {
+        toast.error('Analysis service not found. Please try again later.');
+      } else {
+        toast.error('Analysis failed. Please try again or contact support.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -149,7 +189,7 @@ const Scan: React.FC = () => {
 
         <div className="card max-w-2xl mx-auto">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className={`grid md:grid-cols-2 gap-6 ${isSubmitting ? 'opacity-50 pointer-events-none' : ''}`}>
               <div>
                 <label htmlFor="hemoglobin" className="block text-sm font-medium text-sleep-text dark:text-white mb-2">
                   Hemoglobin (g/dL)
@@ -259,6 +299,7 @@ const Scan: React.FC = () => {
                 type="button"
                 onClick={resetForm}
                 className="btn-secondary flex-1"
+                disabled={isSubmitting}
               >
                 Reset Form
               </button>
@@ -280,7 +321,9 @@ const Scan: React.FC = () => {
               </div>
               {prediction.confidence && (
                 <div className="mt-2 text-sm text-sleep-text/70 dark:text-white/70">
-                  Confidence: {prediction.confidence.toFixed(1)}%
+                  Confidence: {typeof prediction.confidence === 'string' 
+                    ? prediction.confidence 
+                    : `${(prediction.confidence * 100).toFixed(1)}%`}
                 </div>
               )}
               <p className="text-sm text-sleep-text/70 dark:text-white/70 mt-3">
