@@ -1,0 +1,32 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  body {
+    @apply bg-sleep-soft dark:bg-sleep-dark text-sleep-text dark:text-white transition-colors duration-200;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-sleep-blue hover:bg-sleep-blue/90 text-white font-medium py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-sleep-blue/50;
+  }
+  
+  .btn-secondary {
+    @apply bg-sleep-lavender hover:bg-sleep-lavender/90 text-white font-medium py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-sleep-lavender/50;
+  }
+  
+  .card {
+    @apply bg-white dark:bg-sleep-dark/50 rounded-xl shadow-lg border border-sleep-light dark:border-sleep-dark/20 p-6 backdrop-blur-sm;
+  }
+  
+  .input-field {
+    @apply w-full px-4 py-3 border border-sleep-light dark:border-sleep-dark/30 rounded-lg bg-white dark:bg-sleep-dark/30 text-sleep-text dark:text-white placeholder-sleep-text/50 dark:placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-sleep-blue/50 focus:border-transparent transition-all duration-200;
+  }
+}
