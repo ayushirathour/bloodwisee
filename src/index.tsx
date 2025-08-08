@@ -9,16 +9,16 @@ console.log('Supabase URL:', process.env.REACT_APP_SUPABASE_URL);
 console.log('Supabase Key exists:', !!process.env.REACT_APP_SUPABASE_ANON_KEY);
 console.log('API URL:', process.env.REACT_APP_API_URL);
 
-// Error boundary component
-const ErrorBoundary = ({ children }) => {
+// Error boundary component with proper TypeScript typing
+const ErrorBoundary: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   try {
-    return children;
-  } catch (error) {
+    return <>{children}</>;
+  } catch (error: any) {
     console.error('🚨 App Initialization Error:', error);
     return (
       <div style={{ padding: '20px', color: 'red', fontFamily: 'Arial' }}>
         <h2>BloodWise App Error</h2>
-        <p>Error: {error.message}</p>
+        <p>Error: {error?.message || 'Unknown error'}</p>
         <p>Check console for details</p>
       </div>
     );
